@@ -1,0 +1,67 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- Users --------------------
+model users {
+  id       Int     @id @default(autoincrement())
+  email    String  @db.VarChar(255) @unique
+  password String  @db.VarChar(255)
+  role     String? @db.VarChar(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------- Contact Submissions --------------------
+model contact_submissions {
+  id        Int      @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  company   String?
+  message   String
+  ipAddress String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------- Proposal Submissions --------------------
+model proposal_submissions {
+  id          Int       @id @default(autoincrement())
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  email       String
+  phone       String?
+  company     String?
+  projectType String    @map("project_type")
+  description String    @db.Text
+  timeline    String?   // ✅ Add this line
+  resumeUrl   String?   @map("resume_url")
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("proposal_submissions")
+}
+
+// -------------------- Newsletter Subscriptions --------------------
+model newsletter_subscriptions {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  isActive  Boolean  @default(true)
+  ipAddress String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
