@@ -126,3 +126,6 @@ out
 resume.txt
 test-resume.pdf
 test-resume.txt
+
+# GitHub workflows (uncomment when ready)
+# .github/
