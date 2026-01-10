@@ -1,16 +1,48 @@
-// src/services/emailService.ts
 import * as postmark from 'postmark';
-import { ContactFormData, ProposalFormData, NewsletterFormData, EmailConfig } from '../types';
-
-const client = new postmark.ServerClient(process.env.POSTMARK_API_KEY || '');
+import {
+  ContactFormData,
+  ProposalFormData,
+  NewsletterFormData,
+  EmailConfig,
+} from '../types';
 
 class EmailService {
-  private fromEmail = process.env.FROM_EMAIL || 'noreply@metasys.com';
-  private contactEmail = process.env.CONTACT_EMAIL || 'contact@metasys.com';
-  private proposalEmail = process.env.PROPOSAL_EMAIL || 'proposals@metasys.com';
-  private newsletterEmail = process.env.NEWSLETTER_EMAIL || 'newsletter@metasys.com';
+  private fromEmail = process.env.FROM_EMAIL || 'sridevi@metasysglobal.com';
+  private contactEmail =
+    process.env.CONTACT_EMAIL || 'contact@metasysglobal.com';
+  private proposalEmail =
+    process.env.PROPOSAL_EMAIL || 'proposals@metasysglobal.com';
+  private newsletterEmail =
+    process.env.NEWSLETTER_EMAIL || 'newsletter@metasysglobal.com';
 
-  async sendContactEmail(data: ContactFormData, metadata: any): Promise<void> {
+  /* =======================
+     Postmark Client
+     ======================= */
+  private getPostmarkClient(): postmark.ServerClient {
+    const apiKey = process.env.POSTMARK_API_KEY?.trim();
+
+    if (!apiKey) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          '⚠️ Postmark API key missing — email sending disabled (dev mode)'
+        );
+        throw new Error('POSTMARK_DISABLED');
+      }
+
+      throw new Error('Postmark API key missing in production');
+    }
+
+    return new postmark.ServerClient(apiKey);
+  }
+
+  /* =======================
+     Public Email APIs
+     ======================= */
+
+  async sendContactEmail(
+    data: ContactFormData,
+    metadata: any
+  ): Promise<void> {
     const html = this.formatContactEmail(data, metadata);
 
     await this.sendEmail({
@@ -36,7 +68,10 @@ class EmailService {
     });
   }
 
-  async sendNewsletterBackup(data: NewsletterFormData, metadata: any): Promise<void> {
+  async sendNewsletterBackup(
+    data: NewsletterFormData,
+    metadata: any
+  ): Promise<void> {
     const html = this.formatNewsletterEmail(data, metadata);
 
     await this.sendEmail({
@@ -48,21 +83,44 @@ class EmailService {
   }
 
   async sendNewsletterConfirmation(email: string): Promise<void> {
-    const html = `
-      <h2>Welcome to Metasys Newsletter!</h2>
-      <p>Thank you for subscribing to our newsletter.</p>
-      <p>You'll receive updates about our latest projects and insights.</p>
-    `;
-
-    await this.sendEmail({
-      to: email,
-      subject: 'Welcome to Metasys Newsletter',
-      text: 'Thank you for subscribing to our newsletter.',
-      html,
-    });
+  // Skip confirmation email in development/sandbox mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📧 Newsletter confirmation email skipped (dev mode) for: ${email}`);
+    return;
   }
 
+  const html = `
+    <h2>Welcome to Metasys Newsletter!</h2>
+    <p>Thank you for subscribing to our newsletter.</p>
+    <p>You'll receive updates about our latest projects and insights.</p>
+  `;
+
+  await this.sendEmail({
+    to: email,
+    subject: 'Welcome to Metasys Newsletter',
+    text: 'Thank you for subscribing to our newsletter.',
+    html,
+  });
+}
+
+  /* =======================
+     Core Sender
+     ======================= */
   private async sendEmail(config: EmailConfig): Promise<void> {
+    let client: postmark.ServerClient;
+
+    try {
+      client = this.getPostmarkClient();
+    } catch (err: any) {
+      if (err.message === 'POSTMARK_DISABLED') {
+        console.log('📧 Email preview (dev):');
+        console.log(`To: ${config.to}`);
+        console.log(`Subject: ${config.subject}`);
+        return;
+      }
+      throw err;
+    }
+
     try {
       await client.sendEmail({
         From: this.fromEmail,
@@ -72,229 +130,102 @@ class EmailService {
         HtmlBody: config.html,
         MessageStream: 'outbound',
       });
-      console.log(`Email sent to ${config.to}`);
-    } catch (error) {
-      console.error('Email sending error:', error);
-      throw new Error(`Failed to send email: ${error}`);
+
+      console.log(`✅ Email successfully sent → ${config.to}`);
+    } catch (error: any) {
+      console.error('❌ Postmark send failed:', error.message);
+      throw new Error(`Email send failed: ${error.message}`);
     }
   }
 
-  private formatContactEmail(data: ContactFormData, metadata: any): string {
+  /* =======================
+     Email Templates
+     ======================= */
+
+  private formatContactEmail(
+    data: ContactFormData,
+    metadata: any
+  ): string {
     return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #0066cc; color: white; padding: 20px; text-align: center; }
-          .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-          .field { margin-bottom: 15px; }
-          .label { font-weight: bold; color: #555; }
-          .value { margin-top: 5px; }
-          .metadata { background: #e9ecef; padding: 10px; margin-top: 20px; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>New Contact Form Submission</h1>
-          </div>
-          <div class="content">
-            <div class="field">
-              <div class="label">Name:</div>
-              <div class="value">${data.firstName} ${data.lastName}</div>
-            </div>
-            <div class="field">
-              <div class="label">Email:</div>
-              <div class="value"><a href="mailto:${data.email}">${data.email}</a></div>
-            </div>
-            ${
-              data.phone
-                ? `
-            <div class="field">
-              <div class="label">Phone:</div>
-              <div class="value">${data.phone}</div>
-            </div>
-            `
-                : ''
-            }
-            ${
-              data.company
-                ? `
-            <div class="field">
-              <div class="label">Company:</div>
-              <div class="value">${data.company}</div>
-            </div>
-            `
-                : ''
-            }
-            <div class="field">
-              <div class="label">Message:</div>
-              <div class="value">${data.message}</div>
-            </div>
-            <div class="metadata">
-              <strong>Submission Details:</strong><br>
-              IP Address: ${metadata.ipAddress}<br>
-              Timestamp: ${new Date(metadata.timestamp).toLocaleString()}<br>
-              User Agent: ${metadata.userAgent || 'N/A'}
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial; color: #333; }
+    .container { max-width: 600px; margin: auto; }
+    .header { background: #0066cc; color: #fff; padding: 16px; }
+    .content { background: #f9f9f9; padding: 16px; }
+    .field { margin-bottom: 10px; }
+    .label { font-weight: bold; }
+    .meta { font-size: 12px; margin-top: 16px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>New Contact Form Submission</h2>
+    </div>
+    <div class="content">
+      <div class="field"><span class="label">Name:</span> ${data.firstName} ${data.lastName}</div>
+      <div class="field"><span class="label">Email:</span> ${data.email}</div>
+      ${data.phone ? `<div class="field"><span class="label">Phone:</span> ${data.phone}</div>` : ''}
+      ${data.company ? `<div class="field"><span class="label">Company:</span> ${data.company}</div>` : ''}
+      <div class="field"><span class="label">Message:</span> ${data.message}</div>
+
+      <div class="meta">
+        IP: ${metadata.ipAddress}<br/>
+        Time: ${new Date(metadata.timestamp).toLocaleString()}<br/>
+        Agent: ${metadata.userAgent || 'N/A'}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
   }
 
-  private formatProposalEmail(data: ProposalFormData, metadata: any, resumeUrl?: string): string {
+  private formatProposalEmail(
+    data: ProposalFormData,
+    metadata: any,
+    resumeUrl?: string
+  ): string {
     return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #28a745; color: white; padding: 20px; text-align: center; }
-          .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-          .field { margin-bottom: 15px; }
-          .label { font-weight: bold; color: #555; }
-          .value { margin-top: 5px; }
-          .metadata { background: #e9ecef; padding: 10px; margin-top: 20px; font-size: 12px; }
-          .resume-link { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; display: inline-block; margin-top: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>New Proposal Request</h1>
-          </div>
-          <div class="content">
-            <div class="field">
-              <div class="label">Name:</div>
-              <div class="value">${data.firstName} ${data.lastName}</div>
-            </div>
-            <div class="field">
-              <div class="label">Email:</div>
-              <div class="value"><a href="mailto:${data.email}">${data.email}</a></div>
-            </div>
-            <div class="field">
-              <div class="label">Phone:</div>
-              <div class="value">${data.phone}</div>
-            </div>
-            <div class="field">
-              <div class="label">Company:</div>
-              <div class="value">${data.company}</div>
-            </div>
-            <div class="field">
-              <div class="label">Project Type:</div>
-              <div class="value">${data.projectType}</div>
-            </div>
-            ${
-              data.budget
-                ? `
-            <div class="field">
-              <div class="label">Budget:</div>
-              <div class="value">${data.budget}</div>
-            </div>
-            `
-                : ''
-            }
-            ${
-              data.timeline
-                ? `
-            <div class="field">
-              <div class="label">Timeline:</div>
-              <div class="value">${data.timeline}</div>
-            </div>
-            `
-                : ''
-            }
-            <div class="field">
-              <div class="label">Description:</div>
-              <div class="value">${data.description}</div>
-            </div>
-            ${
-              resumeUrl
-                ? `
-            <div class="field">
-              <div class="label">Resume/Document:</div>
-              <div class="value">
-                <a href="${resumeUrl}" class="resume-link">Download File</a>
-              </div>
-            </div>
-            `
-                : ''
-            }
-            <div class="metadata">
-              <strong>Submission Details:</strong><br>
-              IP Address: ${metadata.ipAddress}<br>
-              Timestamp: ${new Date(metadata.timestamp).toLocaleString()}<br>
-              User Agent: ${metadata.userAgent || 'N/A'}
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>New Proposal Request</h2>
+  <p><strong>Name:</strong> ${data.firstName} ${data.lastName}</p>
+  <p><strong>Email:</strong> ${data.email}</p>
+  <p><strong>Company:</strong> ${data.company}</p>
+  <p><strong>Project Type:</strong> ${data.projectType}</p>
+  ${data.budget ? `<p><strong>Budget:</strong> ${data.budget}</p>` : ''}
+  ${data.timeline ? `<p><strong>Timeline:</strong> ${data.timeline}</p>` : ''}
+  <p><strong>Description:</strong> ${data.description}</p>
+  ${resumeUrl ? `<p><a href="${resumeUrl}">Download Attachment</a></p>` : ''}
+  <hr/>
+  <small>IP: ${metadata.ipAddress} | ${new Date(metadata.timestamp).toLocaleString()}</small>
+</body>
+</html>
+`;
   }
 
-  private formatNewsletterEmail(data: NewsletterFormData, metadata: any): string {
+  private formatNewsletterEmail(
+    data: NewsletterFormData,
+    metadata: any
+  ): string {
     return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #6c757d; color: white; padding: 20px; text-align: center; }
-          .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-          .field { margin-bottom: 15px; }
-          .label { font-weight: bold; color: #555; }
-          .value { margin-top: 5px; }
-          .metadata { background: #e9ecef; padding: 10px; margin-top: 20px; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>New Newsletter Subscription</h1>
-          </div>
-          <div class="content">
-            <div class="field">
-              <div class="label">Email:</div>
-              <div class="value"><a href="mailto:${data.email}">${data.email}</a></div>
-            </div>
-            ${
-              data.firstName
-                ? `
-            <div class="field">
-              <div class="label">First Name:</div>
-              <div class="value">${data.firstName}</div>
-            </div>
-            `
-                : ''
-            }
-            ${
-              data.lastName
-                ? `
-            <div class="field">
-              <div class="label">Last Name:</div>
-              <div class="value">${data.lastName}</div>
-            </div>
-            `
-                : ''
-            }
-            <div class="metadata">
-              <strong>Subscription Details:</strong><br>
-              IP Address: ${metadata.ipAddress}<br>
-              Timestamp: ${new Date(metadata.timestamp).toLocaleString()}<br>
-              User Agent: ${metadata.userAgent || 'N/A'}
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>New Newsletter Subscription</h2>
+  <p><strong>Email:</strong> ${data.email}</p>
+  ${data.firstName ? `<p>First Name: ${data.firstName}</p>` : ''}
+  ${data.lastName ? `<p>Last Name: ${data.lastName}</p>` : ''}
+  <hr/>
+  <small>IP: ${metadata.ipAddress} | ${new Date(metadata.timestamp).toLocaleString()}</small>
+</body>
+</html>
+`;
   }
 }
 

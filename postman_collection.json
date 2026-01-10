@@ -1,7 +1,6 @@
 {
   "info": {
     "name": "Metasys Forms API",
-    "description": "API collection for Metasys form submissions",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -11,14 +10,16 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/health",
-          "host": ["{{baseUrl}}"],
+          "raw": "http://localhost:3000/api/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
           "path": ["api", "health"]
         }
       }
     },
     {
-      "name": "Contact Form",
+      "name": "Submit Contact Form",
       "request": {
         "method": "POST",
         "header": [
@@ -29,17 +30,19 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1-555-0123\",\n  \"company\": \"Tech Corp\",\n  \"message\": \"I would like to discuss a potential project collaboration.\"\n}"
+          "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"company\": \"Acme Corp\",\n  \"message\": \"I'm interested in your services\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/api/forms/contact",
-          "host": ["{{baseUrl}}"],
+          "raw": "http://localhost:3000/api/forms/contact",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
           "path": ["api", "forms", "contact"]
         }
       }
     },
     {
-      "name": "Proposal Form",
+      "name": "Submit Proposal Form",
       "request": {
         "method": "POST",
         "header": [
@@ -50,74 +53,19 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane.smith@company.com\",\n  \"phone\": \"+1-555-0456\",\n  \"company\": \"Innovation Inc\",\n  \"projectType\": \"web\",\n  \"budget\": \"$50k-$100k\",\n  \"timeline\": \"3-6 months\",\n  \"description\": \"We need a modern e-commerce platform with AI recommendations.\"\n}"
+          "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+1234567890\",\n  \"company\": \"Tech Solutions Inc\",\n  \"projectType\": \"Web Development\",\n  \"budget\": \"$10,000 - $25,000\",\n  \"timeline\": \"3-6 months\",\n  \"description\": \"We need a complete redesign of our company website\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/api/forms/proposal",
-          "host": ["{{baseUrl}}"],
+          "raw": "http://localhost:3000/api/forms/proposal",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
           "path": ["api", "forms", "proposal"]
         }
       }
     },
     {
-      "name": "Proposal Form with File",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "firstName",
-              "value": "Jane",
-              "type": "text"
-            },
-            {
-              "key": "lastName",
-              "value": "Smith",
-              "type": "text"
-            },
-            {
-              "key": "email",
-              "value": "jane.smith@company.com",
-              "type": "text"
-            },
-            {
-              "key": "phone",
-              "value": "+1-555-0456",
-              "type": "text"
-            },
-            {
-              "key": "company",
-              "value": "Innovation Inc",
-              "type": "text"
-            },
-            {
-              "key": "projectType",
-              "value": "web",
-              "type": "text"
-            },
-            {
-              "key": "description",
-              "value": "Modern e-commerce platform",
-              "type": "text"
-            },
-            {
-              "key": "resumeFile",
-              "type": "file",
-              "src": ""
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/forms/proposal",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "forms", "proposal"]
-        }
-      }
-    },
-    {
-      "name": "Newsletter Subscribe",
+      "name": "Submit Newsletter Signup",
       "request": {
         "method": "POST",
         "header": [
@@ -128,42 +76,16 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"subscriber@example.com\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Johnson\"\n}"
+          "raw": "{\n  \"email\": \"newsletter@example.com\",\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Johnson\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/api/forms/newsletter",
-          "host": ["{{baseUrl}}"],
+          "raw": "http://localhost:3000/api/forms/newsletter",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
           "path": ["api", "forms", "newsletter"]
         }
       }
-    },
-    {
-      "name": "Newsletter Unsubscribe",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"subscriber@example.com\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/forms/newsletter/unsubscribe",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "forms", "newsletter", "unsubscribe"]
-        }
-      }
-    }
-  ],
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3000",
-      "type": "string"
     }
   ]
 }

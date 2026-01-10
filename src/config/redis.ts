@@ -1,7 +1,7 @@
 // src/config/redis.ts
 import Redis from 'ioredis';
 
-const redisClient = new Redis({
+const redis = new Redis({
   host: process.env.REDIS_HOST,
   port: Number(process.env.REDIS_PORT),
   db: Number(process.env.REDIS_DB),
@@ -13,7 +13,7 @@ redis.on('connect', () => {
   console.log('✓ Redis connected');
 });
 
-redis.on('error', (error) => {
+redis.on('error', (error: Error) => {
   console.error('Redis connection error:', error);
 });
 
