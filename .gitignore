@@ -122,3 +122,7 @@ out
 # Backup files
 *.bak
 *.backup
+# Test files
+resume.txt
+test-resume.pdf
+test-resume.txt
